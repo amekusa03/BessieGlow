@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bessie Glow Studio</title>
+<style>
+  :root {
+    --bg-dark: #0a0d14;
+    --panel-bg: rgba(22, 28, 45, 0.85);
+    --panel-border: rgba(0, 229, 255, 0.2);
+    --accent: #00e5ff;
+    --accent-glow: rgba(0, 229, 255, 0.45);
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --led-active: #ffffff;
+    --led-glow: rgba(255, 255, 255, 0.9);
+    --danger: #ff5252;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: radial-gradient(circle at 50% 0%, #161f38 0%, var(--bg-dark) 80%);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .title-group h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    text-shadow: 0 0 10px var(--accent-glow);
+  }
+  .title-group p {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+  }
+  .power-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .power-btn.active {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+  .power-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+  /* LED Monitor */
+  .monitor-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .monitor-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .led-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .led-unit {
+    text-align: center;
+  }
+  .led-lamp {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #222;
+    margin: 0 auto 6px;
+    border: 1px solid #444;
+    transition: all 0.08s ease;
+  }
+  .led-lamp.lit {
+    background: var(--led-active);
+    box-shadow: 0 0 14px var(--led-glow), 0 0 24px rgba(255,255,255,0.6);
+  }
+  .led-name { font-size: 0.7rem; color: var(--text-secondary); }
+  .led-val { font-size: 0.65rem; color: var(--accent); }
+
+  /* Sliders Section */
+  .sliders-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .slider-row {
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+  }
+  .slider-head span:last-child { color: var(--accent); font-weight: 600; }
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #252d40;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* Category Tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+
+  /* Patterns Grid */
+  .patterns-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .pattern-card {
+    background: var(--panel-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 70px;
+  }
+  .pattern-card:active { transform: scale(0.97); }
+  .pattern-card.active {
+    border-color: var(--accent);
+    background: rgba(0, 229, 255, 0.12);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+  }
+  .pat-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .pattern-card.active .pat-title { color: var(--accent); }
+  .pat-desc {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    line-height: 1.25;
+  }
+
+  /* Manual Channels Section */
+  .manual-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: none;
+    margin-bottom: 16px;
+  }
+  .manual-panel.visible { display: block; }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(16, 22, 36, 0.95);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="title-group">
+      <h1>BESSIE GLOW</h1>
+      <p>ESP32-C6 LED Studio (GPIO 0~3)</p>
+    </div>
+    <button id="powerBtn" class="power-btn active" title="電源ON/OFF">
+      <svg viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A7.92 7.92 0 0 1 20 12c0 4.42-3.58 8-8 8s-8-3.58-8-8c0-2.38 1.05-4.52 2.73-5.99l-1.42-1.42C3.12 6.55 2 9.13 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10c0-2.87-1.12-5.45-3.17-7.41z"/></svg>
+    </button>
+  </div>
+
+  <!-- LED Live Monitor -->
+  <div class="monitor-card">
+    <div class="monitor-label">LED Monitor (Live Output)</div>
+    <div class="led-grid">
+      <div class="led-unit">
+        <div id="lamp0" class="led-lamp"></div>
+        <div class="led-name">CH 0</div>
+        <div id="lvl0" class="led-val">0%</div>
+      </div>
+      <div class="led-unit">
+        <div id="lamp1" class="led-lamp"></div>
+        <div class="led-name">CH 1</div>
+        <div id="lvl1" class="led-val">0%</div>
+      </div>
+      <div class="led-unit">
+        <div id="lamp2" class="led-lamp"></div>
+        <div class="led-name">CH 2</div>
+        <div id="lvl2" class="led-val">0%</div>
+      </div>
+      <div class="led-unit">
+        <div id="lamp3" class="led-lamp"></div>
+        <div class="led-name">CH 3</div>
+        <div id="lvl3" class="led-val">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Master Controls -->
+  <div class="sliders-card">
+    <div class="slider-row">
+      <div class="slider-head">
+        <span>全体明るさ (Master)</span>
+        <span id="briVal">100%</span>
+      </div>
+      <input type="range" id="briSlider" min="0" max="100" value="100">
+    </div>
+    <div class="slider-row" style="margin-top: 14px;">
+      <div class="slider-head">
+        <span>スピード (Speed)</span>
+        <span id="spdVal">1.0x</span>
+      </div>
+      <input type="range" id="spdSlider" min="2" max="30" value="10">
+    </div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-cat="all">すべて</button>
+    <button class="tab-btn" data-cat="space">🚀 宇宙船</button>
+    <button class="tab-btn" data-cat="aircraft">✈️ 航空機</button>
+    <button class="tab-btn" data-cat="auto">🚗 自動車</button>
+    <button class="tab-btn" data-cat="fx">⚡ 特殊FX</button>
+    <button class="tab-btn" data-cat="manual">🛠️ 個別調整</button>
+    <button class="tab-btn" data-cat="basic">💡 基本</button>
+  </div>
+
+  <!-- 4ch Manual Sliders Panel (Shown when manual mode is selected) -->
+  <div id="manualPanel" class="manual-panel">
+    <div class="monitor-label" style="margin-bottom: 12px;">4CH 個別調光スライダー</div>
+    <div class="slider-row">
+      <div class="slider-head"><span>CH 0 (GPIO 0)</span><span id="m0Val">100%</span></div>
+      <input type="range" id="m0Slider" min="0" max="100" value="100">
+    </div>
+    <div class="slider-row" style="margin-top: 10px;">
+      <div class="slider-head"><span>CH 1 (GPIO 1)</span><span id="m1Val">100%</span></div>
+      <input type="range" id="m1Slider" min="0" max="100" value="100">
+    </div>
+    <div class="slider-row" style="margin-top: 10px;">
+      <div class="slider-head"><span>CH 2 (GPIO 2)</span><span id="m2Val">100%</span></div>
+      <input type="range" id="m2Slider" min="0" max="100" value="100">
+    </div>
+    <div class="slider-row" style="margin-top: 10px;">
+      <div class="slider-head"><span>CH 3 (GPIO 3)</span><span id="m3Val">100%</span></div>
+      <input type="range" id="m3Slider" min="0" max="100" value="100">
+    </div>
+  </div>
+
+  <!-- Patterns Grid -->
+  <div id="patternsGrid" class="patterns-grid">
+    <!-- Populated dynamically from API -->
+  </div>
+
+  <div id="toast" class="toast">設定をNVSに記憶しました</div>
+
+<script>
+let state = {
+  pattern_idx: 0,
+  master_brightness: 100,
+  speed: 1.0,
+  manual_ch: [100, 100, 100, 100],
+  power_on: true,
+  patterns: []
+};
+
+let currentCategory = 'all';
+
+// DOM Elements
+const powerBtn = document.getElementById('powerBtn');
+const briSlider = document.getElementById('briSlider');
+const briVal = document.getElementById('briVal');
+const spdSlider = document.getElementById('spdSlider');
+const spdVal = document.getElementById('spdVal');
+const patternsGrid = document.getElementById('patternsGrid');
+const manualPanel = document.getElementById('manualPanel');
+const toast = document.getElementById('toast');
+
+const mSliders = [
+  document.getElementById('m0Slider'),
+  document.getElementById('m1Slider'),
+  document.getElementById('m2Slider'),
+  document.getElementById('m3Slider')
+];
+const mVals = [
+  document.getElementById('m0Val'),
+  document.getElementById('m1Val'),
+  document.getElementById('m2Val'),
+  document.getElementById('m3Val')
+];
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// Render Pattern Cards
+function renderPatterns() {
+  patternsGrid.innerHTML = '';
+  state.patterns.forEach((pat, idx) => {
+    if (currentCategory !== 'all' && pat.category !== currentCategory) return;
+    const card = document.createElement('div');
+    card.className = 'pattern-card' + (state.pattern_idx === idx ? ' active' : '');
+    card.innerHTML = `
+      <div class="pat-title">${pat.name}</div>
+      <div class="pat-desc">${pat.desc}</div>
+    `;
+    card.onclick = () => selectPattern(idx);
+    patternsGrid.appendChild(card);
+  });
+}
+
+function selectPattern(idx) {
+  state.pattern_idx = idx;
+  const isManual = state.patterns[idx] && state.patterns[idx].id === 'manual';
+  manualPanel.classList.toggle('visible', isManual);
+  renderPatterns();
+  sendControl({ pattern: idx });
+}
+
+// Category Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = btn.dataset.cat;
+    renderPatterns();
+  };
+});
+
+// Power Button
+powerBtn.onclick = () => {
+  state.power_on = !state.power_on;
+  powerBtn.classList.toggle('active', state.power_on);
+  sendControl({ power: state.power_on });
+};
+
+// Brightness Slider
+briSlider.oninput = (e) => {
+  state.master_brightness = parseInt(e.target.value);
+  briVal.textContent = state.master_brightness + '%';
+};
+briSlider.onchange = () => sendControl({ brightness: state.master_brightness });
+
+// Speed Slider
+spdSlider.oninput = (e) => {
+  state.speed = parseFloat(e.target.value) / 10.0;
+  spdVal.textContent = state.speed.toFixed(1) + 'x';
+};
+spdSlider.onchange = () => sendControl({ speed: state.speed });
+
+// Manual Sliders
+mSliders.forEach((s, idx) => {
+  s.oninput = (e) => {
+    state.manual_ch[idx] = parseInt(e.target.value);
+    mVals[idx].textContent = state.manual_ch[idx] + '%';
+  };
+  s.onchange = () => sendControl({ manual: state.manual_ch });
+});
+
+// API Calls
+async function sendControl(payload) {
+  try {
+    const res = await fetch('/api/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast('設定を反映＆記憶しました');
+    }
+  } catch (err) {
+    console.error('Control error', err);
+  }
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    
+    // Initial pattern load
+    if (state.patterns.length === 0 && data.patterns) {
+      state.patterns = data.patterns;
+      renderPatterns();
+    }
+
+    state.pattern_idx = data.pattern_idx;
+    state.master_brightness = data.master_brightness;
+    state.speed = data.speed;
+    state.power_on = data.power_on;
+    if (data.manual_ch) state.manual_ch = data.manual_ch;
+
+    // Update UI elements
+    briSlider.value = state.master_brightness;
+    briVal.textContent = state.master_brightness + '%';
+    spdSlider.value = Math.round(state.speed * 10);
+    spdVal.textContent = state.speed.toFixed(1) + 'x';
+    powerBtn.classList.toggle('active', state.power_on);
+
+    mSliders.forEach((s, i) => {
+      s.value = state.manual_ch[i];
+      mVals[i].textContent = state.manual_ch[i] + '%';
+    });
+
+    const isManual = state.patterns[state.pattern_idx] && state.patterns[state.pattern_idx].id === 'manual';
+    manualPanel.classList.toggle('visible', isManual);
+
+    // Live monitor levels
+    if (data.live) {
+      data.live.forEach((lvl, i) => {
+        const lamp = document.getElementById('lamp' + i);
+        const txt = document.getElementById('lvl' + i);
+        lamp.style.opacity = Math.max(0.15, lvl / 100.0);
+        lamp.classList.toggle('lit', lvl > 5);
+        txt.textContent = lvl + '%';
+      });
+    }
+
+    // Highlight active card
+    document.querySelectorAll('.pattern-card').forEach((c, i) => {
+      // Find card corresponding to current active pattern
+      const p = state.patterns[i];
+      // simplified
+    });
+  } catch (err) {
+    console.error('Fetch status error', err);
+  }
+}
+
+// Initial fetch and 1-sec monitor polling
+fetchStatus();
+setInterval(fetchStatus, 800);
+</script>
+</body>
+</html>
